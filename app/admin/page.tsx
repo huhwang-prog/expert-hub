@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, Trash2, Lock, ChevronDown, ChevronUp, Sparkles, FileText, ExternalLink, Users, Building2, Link2, CheckCircle2, Clock } from "lucide-react";
+import { Check, X, Trash2, Lock, ChevronDown, ChevronUp, Sparkles, Link2, Users, Building2, CheckCircle2, Clock } from "lucide-react";
 import { getAllExperts, updateExpertStatus, deleteExpert, getAllInstitutions, updateInstitutionStatus, deleteInstitution, getAllMatches, saveMatch, updateMatchStatus, deleteMatch, getApprovedExperts, getApprovedInstitutions } from "@/lib/storage";
 import { Expert, Institution, Match } from "@/lib/types";
 
@@ -19,7 +19,6 @@ export default function AdminPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // 매칭 UI 상태
   const [matchInst, setMatchInst] = useState<Institution | null>(null);
   const [matchProject, setMatchProject] = useState<string>("");
   const [matchNote, setMatchNote] = useState("");
@@ -64,7 +63,6 @@ export default function AdminPage() {
         <button onClick={() => setAuthed(false)} className="text-sm text-gray-400 hover:text-gray-600">로그아웃</button>
       </div>
 
-      {/* 메인 탭 */}
       <div className="flex gap-3 mb-8">
         {([
           ["experts", <Users size={15} key="u" />, `전문가 관리 (${expCounts.pending} 대기)`],
@@ -78,24 +76,13 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {/* ─── 전문가 관리 ─── */}
-      {tab === "experts" && (
-        <ExpertTab experts={experts} onLoad={load} expandedId={expandedId} setExpandedId={setExpandedId} />
-      )}
-
-      {/* ─── 기관 관리 ─── */}
-      {tab === "institutions" && (
-        <InstitutionTab institutions={institutions} onLoad={load} expandedId={expandedId} setExpandedId={setExpandedId} />
-      )}
-
-      {/* ─── 매칭 관리 ─── */}
+      {tab === "experts" && <ExpertTab experts={experts} onLoad={load} expandedId={expandedId} setExpandedId={setExpandedId} />}
+      {tab === "institutions" && <InstitutionTab institutions={institutions} onLoad={load} expandedId={expandedId} setExpandedId={setExpandedId} />}
       {tab === "matching" && (
-        <MatchingTab
-          matches={matches} onLoad={load}
+        <MatchingTab matches={matches} onLoad={load}
           matchInst={matchInst} setMatchInst={setMatchInst}
           matchProject={matchProject} setMatchProject={setMatchProject}
-          matchNote={matchNote} setMatchNote={setMatchNote}
-        />
+          matchNote={matchNote} setMatchNote={setMatchNote} />
       )}
     </div>
   );
@@ -112,20 +99,17 @@ function ExpertTab({ experts, onLoad, expandedId, setExpandedId }: {
   return (
     <div>
       <StatusTabs value={filter} onChange={(v) => setFilter(v as Expert["status"])} counts={counts} />
-      {filtered.length === 0
-        ? <Empty />
-        : <div className="space-y-3">
+      {filtered.length === 0 ? <Empty /> : (
+        <div className="space-y-3">
           {filtered.map((e) => (
             <div key={e.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
               <div className="flex items-center gap-4 px-6 py-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-gray-900">{e.name}</span>
-                    <span className="text-gray-400 text-sm">{e.position}</span>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{e.affiliation}</span>
-                    <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{e.specialty}</span>
-                    {e.certFileName && <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full flex items-center gap-1"><FileText size={10} />증빙첨부</span>}
+                    <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{e.mainField}</span>
                   </div>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">{e.tagline}</p>
                   <div className="text-xs text-gray-400 mt-0.5">{e.contact} · {e.phone} · {new Date(e.createdAt).toLocaleDateString("ko-KR")} 신청</div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -142,17 +126,23 @@ function ExpertTab({ experts, onLoad, expandedId, setExpandedId }: {
                 </div>
               </div>
               {expandedId === e.id && (
-                <div className="border-t border-gray-100 px-6 py-5 space-y-4 bg-gray-50 text-sm">
-                  <Row label="최종 학력" value={e.education} />
-                  <Row label="주요 경력" value={e.careers?.map((c) => `${c.period}  ${c.org}  ${c.role}`).join("\n") ?? ""} pre />
-                  {e.evaluations && <Row label="참여 평가 이력" value={e.evaluations} pre />}
-                  {e.certFile && (
+                <div className="border-t border-gray-100 px-6 py-5 space-y-3 bg-gray-50 text-sm">
+                  <Row label="전문성 및 이력" value={e.expertise} pre />
+                  <Row label="경력 요약" value={e.careerSummary} pre />
+                  {e.skills?.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-gray-500 mb-2">위촉 증빙 서류</p>
-                      <a href={e.certFile} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline border border-blue-200 rounded-lg px-3 py-1.5 bg-blue-50">
-                        <ExternalLink size={12} />{e.certFileName ?? "파일 보기"}
-                      </a>
+                      <p className="text-xs font-semibold text-gray-500 mb-1.5">핵심 스킬</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {e.skills.map((s) => <span key={s} className="bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-full">{s}</span>)}
+                      </div>
+                    </div>
+                  )}
+                  {e.collaborationTypes?.length > 0 && <Row label="희망 협업 형태" value={e.collaborationTypes.join(", ")} />}
+                  {e.portfolioLink && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 mb-1">포트폴리오 / 링크드인</p>
+                      <a href={e.portfolioLink} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:underline">{e.portfolioLink}</a>
                     </div>
                   )}
                   {e.summary && (
@@ -168,7 +158,8 @@ function ExpertTab({ experts, onLoad, expandedId, setExpandedId }: {
               )}
             </div>
           ))}
-        </div>}
+        </div>
+      )}
     </div>
   );
 }
@@ -184,9 +175,8 @@ function InstitutionTab({ institutions, onLoad, expandedId, setExpandedId }: {
   return (
     <div>
       <StatusTabs value={filter} onChange={(v) => setFilter(v as Institution["status"])} counts={counts} />
-      {filtered.length === 0
-        ? <Empty />
-        : <div className="space-y-3">
+      {filtered.length === 0 ? <Empty /> : (
+        <div className="space-y-3">
           {filtered.map((inst) => (
             <div key={inst.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
               <div className="flex items-center gap-4 px-6 py-4">
@@ -194,8 +184,9 @@ function InstitutionTab({ institutions, onLoad, expandedId, setExpandedId }: {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-gray-900">{inst.orgName}</span>
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{inst.adminName}</span>
-                    <span className="text-xs text-gray-400">{inst.projects.length}개 과제</span>
+                    <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{inst.expertField}</span>
                   </div>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">{inst.description}</p>
                   <div className="text-xs text-gray-400 mt-0.5">{inst.email} · {inst.phone}</div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -211,23 +202,35 @@ function InstitutionTab({ institutions, onLoad, expandedId, setExpandedId }: {
                   </button>
                 </div>
               </div>
-              {expandedId === inst.id && inst.projects.length > 0 && (
-                <div className="border-t border-gray-100 px-6 py-5 bg-gray-50 space-y-3">
-                  <p className="text-xs font-semibold text-gray-500">등록 과제</p>
-                  {inst.projects.map((p) => (
-                    <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-4">
-                      <div className="font-semibold text-sm text-gray-800 mb-1">{p.title}</div>
-                      <div className="text-xs text-gray-500 mb-2">{p.agency} · {p.period} · 위원 {p.requiredCount}명</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {p.specialties.map((s) => <span key={s} className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full">{s}</span>)}
-                      </div>
+              {expandedId === inst.id && (
+                <div className="border-t border-gray-100 px-6 py-5 bg-gray-50 space-y-3 text-sm">
+                  {inst.description && <Row label="기관 소개" value={inst.description} pre />}
+                  {inst.referenceLink && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 mb-1">참고 링크</p>
+                      <a href={inst.referenceLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">{inst.referenceLink}</a>
                     </div>
-                  ))}
+                  )}
+                  {inst.projects.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 mb-2">등록 과제 ({inst.projects.length})</p>
+                      {inst.projects.map((p) => (
+                        <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-4 mb-2">
+                          <div className="font-semibold text-sm text-gray-800 mb-1">{p.title}</div>
+                          <div className="text-xs text-gray-500 mb-2">{p.agency} · {p.period} · 위원 {p.requiredCount}명</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {p.specialties.map((s) => <span key={s} className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full">{s}</span>)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           ))}
-        </div>}
+        </div>
+      )}
     </div>
   );
 }
@@ -251,18 +254,17 @@ function MatchingTab({ matches, onLoad, matchInst, setMatchInst, matchProject, s
   }, [matches]);
 
   const selectedProjectObj = matchInst?.projects.find((p) => p.id === matchProject);
-
   const suggestedExperts = selectedProjectObj
-    ? approvedExperts.filter((e) => selectedProjectObj.specialties.includes(e.specialty))
-    : [];
+    ? approvedExperts.filter((e) => selectedProjectObj.specialties.includes(e.mainField))
+    : approvedExperts;
 
   const doMatch = async () => {
-    if (!selectedExpert || !matchInst || !matchProject || !selectedProjectObj) return;
+    if (!selectedExpert || !matchInst) return;
     await saveMatch({
       id: crypto.randomUUID(),
-      expertId: selectedExpert.id, expertName: selectedExpert.name, expertSpecialty: selectedExpert.specialty,
+      expertId: selectedExpert.id, expertName: selectedExpert.name, expertMainField: selectedExpert.mainField,
       institutionId: matchInst.id, institutionName: matchInst.orgName,
-      projectId: matchProject, projectTitle: selectedProjectObj.title,
+      projectId: matchProject, projectTitle: selectedProjectObj?.title ?? "",
       status: "suggested", note: matchNote,
       createdAt: new Date().toISOString(),
     });
@@ -273,11 +275,9 @@ function MatchingTab({ matches, onLoad, matchInst, setMatchInst, matchProject, s
 
   return (
     <div className="space-y-8">
-      {/* 매칭 생성 */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6">
         <h2 className="font-bold text-gray-900 mb-5 flex items-center gap-2"><Link2 size={16} className="text-blue-600" />새 매칭 제안</h2>
         <div className="grid md:grid-cols-2 gap-5">
-          {/* 기관 선택 */}
           <div>
             <label className="text-xs font-semibold text-gray-600 mb-1.5 block">기관 선택</label>
             <select className={inputCls} value={matchInst?.id ?? ""}
@@ -286,9 +286,8 @@ function MatchingTab({ matches, onLoad, matchInst, setMatchInst, matchProject, s
               {approvedInsts.map((i) => <option key={i.id} value={i.id}>{i.orgName}</option>)}
             </select>
           </div>
-          {/* 과제 선택 */}
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1.5 block">과제 선택</label>
+            <label className="text-xs font-semibold text-gray-600 mb-1.5 block">과제 선택 (선택)</label>
             <select className={inputCls} value={matchProject} onChange={(e) => { setMatchProject(e.target.value); setSelectedExpert(null); }} disabled={!matchInst}>
               <option value="">과제 선택...</option>
               {matchInst?.projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
@@ -296,11 +295,11 @@ function MatchingTab({ matches, onLoad, matchInst, setMatchInst, matchProject, s
           </div>
         </div>
 
-        {selectedProjectObj && (
-          <div className="mt-4 bg-blue-50 rounded-xl p-4 text-sm">
-            <p className="font-semibold text-gray-800 mb-1">{selectedProjectObj.title}</p>
-            <p className="text-gray-500 text-xs mb-2">필요 분야: {selectedProjectObj.specialties.join(", ")} · 위원 {selectedProjectObj.requiredCount}명</p>
-            <p className="text-xs font-semibold text-gray-600 mb-2">해당 분야 전문가 ({suggestedExperts.length}명)</p>
+        {matchInst && (
+          <div className="mt-4 bg-blue-50 rounded-xl p-4">
+            <p className="text-xs font-semibold text-gray-600 mb-2">
+              {selectedProjectObj ? `"${selectedProjectObj.title}" 관련 전문가` : "전체 승인 전문가"} ({suggestedExperts.length}명)
+            </p>
             <div className="space-y-2">
               {suggestedExperts.length === 0
                 ? <p className="text-xs text-gray-400">해당 분야 승인된 전문가가 없습니다.</p>
@@ -308,8 +307,8 @@ function MatchingTab({ matches, onLoad, matchInst, setMatchInst, matchProject, s
                   <button key={e.id} onClick={() => setSelectedExpert(selectedExpert?.id === e.id ? null : e)}
                     className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${selectedExpert?.id === e.id ? "border-blue-500 bg-blue-100" : "border-gray-200 bg-white hover:border-blue-300"}`}>
                     <span className="font-semibold text-sm text-gray-900">{e.name}</span>
-                    <span className="text-xs text-gray-500 ml-2">{e.position} · {e.affiliation}</span>
-                    {e.summary && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{e.summary}</p>}
+                    <span className="text-xs text-gray-500 ml-2">{e.mainField}</span>
+                    {e.tagline && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{e.tagline}</p>}
                   </button>
                 ))
               }
@@ -331,12 +330,10 @@ function MatchingTab({ matches, onLoad, matchInst, setMatchInst, matchProject, s
         )}
       </div>
 
-      {/* 매칭 목록 */}
       <div>
         <h2 className="font-bold text-gray-900 mb-4">매칭 현황 ({matches.length})</h2>
-        {matches.length === 0
-          ? <Empty />
-          : <div className="space-y-3">
+        {matches.length === 0 ? <Empty /> : (
+          <div className="space-y-3">
             {matches.map((m) => (
               <div key={m.id} className="bg-white border border-gray-200 rounded-2xl px-6 py-4 flex items-center gap-4">
                 <div className="flex-1 min-w-0">
@@ -345,7 +342,7 @@ function MatchingTab({ matches, onLoad, matchInst, setMatchInst, matchProject, s
                     <span className="text-gray-400 text-sm">→</span>
                     <span className="font-semibold text-blue-700">{m.institutionName}</span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">{m.projectTitle} · {m.expertSpecialty}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{m.projectTitle && `${m.projectTitle} · `}{m.expertMainField}</div>
                   {m.note && <div className="text-xs text-gray-400 mt-0.5">{m.note}</div>}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -358,7 +355,8 @@ function MatchingTab({ matches, onLoad, matchInst, setMatchInst, matchProject, s
                 </div>
               </div>
             ))}
-          </div>}
+          </div>
+        )}
       </div>
     </div>
   );

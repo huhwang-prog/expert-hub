@@ -2,20 +2,29 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, LogIn, UserPlus, Lock, Mail, AlertCircle } from "lucide-react";
+import { Building2, LogIn, UserPlus, Lock, Mail, AlertCircle, Phone, Link, FileText, ClipboardList } from "lucide-react";
 import { loginInstitution, saveInstitution } from "@/lib/storage";
 import { Institution } from "@/lib/types";
+import { EXPERT_FIELDS } from "@/lib/constants";
 
 export default function InstitutionPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
 
-  // 로그인
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [loginError, setLoginError] = useState("");
 
-  // 회원가입
-  const [regForm, setRegForm] = useState({ orgName: "", adminName: "", email: "", password: "", password2: "", phone: "" });
+  const [regForm, setRegForm] = useState({
+    orgName: "",
+    description: "",
+    referenceLink: "",
+    adminName: "",
+    email: "",
+    phone: "",
+    password: "",
+    password2: "",
+    expertField: "",
+  });
   const [regError, setRegError] = useState("");
   const [regDone, setRegDone] = useState(false);
 
@@ -31,13 +40,17 @@ export default function InstitutionPage() {
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (regForm.password !== regForm.password2) { setRegError("비밀번호가 일치하지 않습니다."); return; }
+    if (!regForm.expertField) { setRegError("필요한 전문가 분야를 선택해주세요."); return; }
     await saveInstitution({
       id: crypto.randomUUID(),
       orgName: regForm.orgName,
+      description: regForm.description,
+      referenceLink: regForm.referenceLink || undefined,
       adminName: regForm.adminName,
       email: regForm.email,
       password: regForm.password,
       phone: regForm.phone,
+      expertField: regForm.expertField,
       projects: [],
       status: "pending",
       createdAt: new Date().toISOString(),
@@ -60,13 +73,12 @@ export default function InstitutionPage() {
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-6 py-16">
-      <div className="bg-white border border-gray-200 rounded-2xl p-10 w-full max-w-md shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-2xl p-10 w-full max-w-lg shadow-sm">
         <div className="flex items-center justify-center gap-2 text-blue-700 font-bold text-xl mb-2">
           <Building2 size={22} />기관 담당자
         </div>
         <p className="text-center text-gray-400 text-sm mb-8">정부과제 전문가 수요를 등록하고 매칭을 받아보세요</p>
 
-        {/* 탭 */}
         <div className="flex rounded-xl overflow-hidden border border-gray-200 mb-7">
           {(["login", "register"] as const).map((m) => (
             <button key={m} onClick={() => setMode(m)}
@@ -94,22 +106,78 @@ export default function InstitutionPage() {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleRegister} className="space-y-3">
-            {[
-              { label: "기관명", name: "orgName", placeholder: "OO기관 / OO연구소", type: "text" },
-              { label: "담당자명", name: "adminName", placeholder: "홍길동", type: "text" },
-              { label: "이메일", name: "email", placeholder: "admin@org.kr", type: "email" },
-              { label: "연락처", name: "phone", placeholder: "010-0000-0000", type: "text" },
-              { label: "비밀번호", name: "password", placeholder: "비밀번호", type: "password" },
-              { label: "비밀번호 확인", name: "password2", placeholder: "비밀번호 재입력", type: "password" },
-            ].map(({ label, name, placeholder, type }) => (
-              <div key={name}>
-                <label className="text-xs font-semibold text-gray-600 mb-1 block">{label}</label>
-                <input type={type} value={regForm[name as keyof typeof regForm]}
-                  onChange={(e) => setRegForm((p) => ({ ...p, [name]: e.target.value }))}
-                  required placeholder={placeholder} className={inputCls} />
+          <form onSubmit={handleRegister} className="space-y-4">
+            {/* 기관 기본 정보 */}
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide pt-1">기관 기본 정보</p>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1"><Building2 size={12} />기관명 <span className="text-red-500">*</span></label>
+              <input type="text" value={regForm.orgName} onChange={(e) => setRegForm((p) => ({ ...p, orgName: e.target.value }))}
+                required placeholder="OO기관 / OO연구소" className={inputCls} />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1"><FileText size={12} />기관 간단 소개 <span className="text-red-500">*</span></label>
+              <textarea value={regForm.description} onChange={(e) => setRegForm((p) => ({ ...p, description: e.target.value }))}
+                required rows={3} placeholder="어떤 기관인지 2~3줄로 간략히 소개해주세요." className={`${inputCls} resize-none`} />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1"><Link size={12} />참고 링크 <span className="text-gray-400 font-normal">(선택)</span></label>
+              <input type="url" value={regForm.referenceLink} onChange={(e) => setRegForm((p) => ({ ...p, referenceLink: e.target.value }))}
+                placeholder="https://... (웹사이트, SNS, 노션 등)" className={inputCls} />
+            </div>
+
+            {/* 담당자 연락 정보 */}
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide pt-2">담당자 연락 정보</p>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1 block">담당자 성함 <span className="text-red-500">*</span></label>
+              <input type="text" value={regForm.adminName} onChange={(e) => setRegForm((p) => ({ ...p, adminName: e.target.value }))}
+                required placeholder="홍길동" className={inputCls} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1"><Mail size={12} />이메일 <span className="text-red-500">*</span></label>
+                <input type="email" value={regForm.email} onChange={(e) => setRegForm((p) => ({ ...p, email: e.target.value }))}
+                  required placeholder="admin@org.kr" className={inputCls} />
               </div>
-            ))}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1"><Phone size={12} />연락처 <span className="text-red-500">*</span></label>
+                <input type="tel" value={regForm.phone} onChange={(e) => setRegForm((p) => ({ ...p, phone: e.target.value }))}
+                  required placeholder="010-0000-0000" className={inputCls} />
+              </div>
+            </div>
+
+            {/* 전문가 탐색 정보 */}
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide pt-2">전문가 탐색 정보</p>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1"><ClipboardList size={12} />필요한 전문가 분야 <span className="text-red-500">*</span></label>
+              <select value={regForm.expertField} onChange={(e) => setRegForm((p) => ({ ...p, expertField: e.target.value }))}
+                required className={inputCls}>
+                <option value="">선택하세요</option>
+                {EXPERT_FIELDS.map((f) => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+
+            {/* 비밀번호 */}
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide pt-2">계정 설정</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1"><Lock size={12} />비밀번호 <span className="text-red-500">*</span></label>
+                <input type="password" value={regForm.password} onChange={(e) => setRegForm((p) => ({ ...p, password: e.target.value }))}
+                  required placeholder="비밀번호" className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">비밀번호 확인 <span className="text-red-500">*</span></label>
+                <input type="password" value={regForm.password2} onChange={(e) => setRegForm((p) => ({ ...p, password2: e.target.value }))}
+                  required placeholder="비밀번호 재입력" className={inputCls} />
+              </div>
+            </div>
+
             {regError && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={12} />{regError}</p>}
             <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 mt-1">
               <UserPlus size={16} />가입 신청

@@ -194,7 +194,7 @@ export default function InstitutionDashboard() {
               </div>
               <div className="flex-1">
                 <div className="font-bold text-gray-900">{m.expertName}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{m.expertSpecialty} · {m.projectTitle}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{m.expertMainField} · {m.projectTitle}</div>
                 {m.note && <div className="text-xs text-gray-400 mt-1">{m.note}</div>}
               </div>
               <div className="flex items-center gap-1.5 text-xs font-semibold">

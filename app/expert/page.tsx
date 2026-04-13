@@ -1,65 +1,80 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle, Loader2, User, Building2, Briefcase, GraduationCap, FileText, ClipboardList, Mail, Phone, Upload, X, Plus, Trash2 } from "lucide-react";
+import { CheckCircle, Loader2, User, ClipboardList, FileText, Mail, Phone, Link, Tag, X, Plus } from "lucide-react";
 import { saveExpert } from "@/lib/storage";
-import { Expert, CareerItem } from "@/lib/types";
-
-const SPECIALTY_OPTIONS = [
-  "경영/전략", "마케팅/홍보", "재무/회계", "인사/노무",
-  "IT/소프트웨어", "데이터/AI", "법률/특허", "R&D/기술",
-  "제조/생산", "유통/물류", "농업/식품", "문화/콘텐츠", "기타",
-];
+import { Expert } from "@/lib/types";
+import { EXPERT_FIELDS, COLLABORATION_TYPES } from "@/lib/constants";
 
 export default function ExpertPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", affiliation: "", position: "", specialty: "", education: "", evaluations: "", phone: "", contact: "" });
-  const [careers, setCareers] = useState<CareerItem[]>([{ period: "", org: "", role: "" }]);
-  const [certFile, setCertFile] = useState<string | undefined>();
-  const [certFileName, setCertFileName] = useState<string | undefined>();
+  const [form, setForm] = useState({
+    name: "",
+    tagline: "",
+    expertise: "",
+    mainField: "",
+    careerSummary: "",
+    portfolioLink: "",
+    contact: "",
+    phone: "",
+  });
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState("");
+  const [collaborationTypes, setCollaborationTypes] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleCareer = (idx: number, field: keyof CareerItem, value: string) => {
-    setCareers((prev) => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
+  const addSkill = () => {
+    const s = skillInput.trim();
+    if (s && !skills.includes(s)) setSkills((prev) => [...prev, s]);
+    setSkillInput("");
   };
-  const addCareer = () => setCareers((prev) => [...prev, { period: "", org: "", role: "" }]);
-  const removeCareer = (idx: number) => setCareers((prev) => prev.filter((_, i) => i !== idx));
+  const removeSkill = (s: string) => setSkills((prev) => prev.filter((x) => x !== s));
+  const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") { e.preventDefault(); addSkill(); }
+  };
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { alert("파일 크기는 2MB 이하여야 합니다."); return; }
-    const reader = new FileReader();
-    reader.onload = () => { setCertFile(reader.result as string); setCertFileName(file.name); };
-    reader.readAsDataURL(file);
+  const toggleCollab = (type: string) => {
+    setCollaborationTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const filledCareers = careers.filter((c) => c.period || c.org || c.role);
-    if (filledCareers.length === 0) { alert("주요 경력을 1개 이상 입력해주세요."); return; }
+    if (!form.mainField) { alert("메인 전문 분야를 선택해주세요."); return; }
+    if (collaborationTypes.length === 0) { alert("희망 협업 형태를 1개 이상 선택해주세요."); return; }
     setSubmitting(true);
 
-    const careerText = filledCareers.map((c) => `${c.period}  ${c.org}  ${c.role}`).join("\n");
     let summary = "", fields: string[] = [];
     try {
       const res = await fetch("/api/summarize", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, affiliation: form.affiliation,
-          bio: `직위: ${form.position}\n전문분야: ${form.specialty}\n학력: ${form.education}\n경력:\n${careerText}\n참여평가: ${form.evaluations}` }),
+        body: JSON.stringify({
+          name: form.name,
+          affiliation: form.mainField,
+          bio: `한 줄 소개: ${form.tagline}\n전문성: ${form.expertise}\n경력 요약: ${form.careerSummary}\n스킬: ${skills.join(", ")}`,
+        }),
       });
       const data = await res.json();
       if (res.ok) { summary = data.summary ?? ""; fields = data.fields ?? []; }
     } catch { /* AI 실패 시 진행 */ }
 
-    const expert: Expert = { id: crypto.randomUUID(), ...form, careers: filledCareers, certFile, certFileName, summary, fields, status: "pending", createdAt: new Date().toISOString() };
+    const expert: Expert = {
+      id: crypto.randomUUID(),
+      ...form,
+      skills,
+      collaborationTypes,
+      summary,
+      fields,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
     await saveExpert(expert);
     setSubmitting(false);
     setDone(true);
@@ -90,83 +105,83 @@ export default function ExpertPage() {
         <Field label="이름" icon={<User size={14} />} required>
           <input name="name" value={form.name} onChange={handleChange} required placeholder="홍길동" className={inputCls} />
         </Field>
-        <Field label="소속 기관" icon={<Building2 size={14} />} required>
-          <input name="affiliation" value={form.affiliation} onChange={handleChange} required placeholder="OO대학교 / OO연구소 / OO기업" className={inputCls} />
-        </Field>
-        <Field label="직위 / 직책" icon={<Briefcase size={14} />} required>
-          <input name="position" value={form.position} onChange={handleChange} required placeholder="교수 / 수석연구원 / 대표이사" className={inputCls} />
-        </Field>
-        <Field label="전문 분야" icon={<ClipboardList size={14} />} required>
-          <select name="specialty" value={form.specialty} onChange={handleChange} required className={inputCls}>
-            <option value="">선택하세요</option>
-            {SPECIALTY_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
-        </Field>
-        <Field label="최종 학력" icon={<GraduationCap size={14} />} required>
-          <input name="education" value={form.education} onChange={handleChange} required placeholder="OO대학교 OO학과 박사/석사/학사" className={inputCls} />
+
+        <Field label="나를 나타내는 한 줄 소개" icon={<User size={14} />} required>
+          <input name="tagline" value={form.tagline} onChange={handleChange} required
+            placeholder="예: 스타트업 투자·사업화 10년 경력의 현장형 전문가" className={inputCls} />
         </Field>
 
-        {/* 연락처 */}
+        <Field label="메인 전문 분야" icon={<ClipboardList size={14} />} required>
+          <select name="mainField" value={form.mainField} onChange={handleChange} required className={inputCls}>
+            <option value="">선택하세요</option>
+            {EXPERT_FIELDS.map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+        </Field>
+
+        <Field label="전문성 및 이력" icon={<FileText size={14} />} required>
+          <textarea name="expertise" value={form.expertise} onChange={handleChange} required rows={4}
+            placeholder="어떤 분야에서 어떤 전문성을 쌓아왔는지 자유롭게 작성해주세요." className={`${inputCls} resize-none`} />
+        </Field>
+
+        {/* 핵심 보유 스킬 */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <span className="inline-flex items-center gap-1.5"><Tag size={14} />핵심 보유 스킬</span>
+          </label>
+          <div className="flex gap-2 mb-2">
+            <input value={skillInput} onChange={(e) => setSkillInput(e.target.value)} onKeyDown={handleSkillKeyDown}
+              placeholder="예: 사업 고도화 (Enter로 추가)" className={`${inputCls} flex-1`} />
+            <button type="button" onClick={addSkill}
+              className="px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors flex-shrink-0">
+              <Plus size={14} />
+            </button>
+          </div>
+          {skills.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {skills.map((s) => (
+                <span key={s} className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-full">
+                  {s}
+                  <button type="button" onClick={() => removeSkill(s)} className="text-blue-400 hover:text-blue-700"><X size={11} /></button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Field label="주요 경력 요약" icon={<FileText size={14} />} required>
+          <textarea name="careerSummary" value={form.careerSummary} onChange={handleChange} required rows={3}
+            placeholder="어디서 어떤 일을 했는지 핵심만 2~3줄로 요약해주세요." className={`${inputCls} resize-none`} />
+        </Field>
+
+        <Field label="포트폴리오 / 이력서 / 링크드인" icon={<Link size={14} />} required>
+          <input name="portfolioLink" value={form.portfolioLink} onChange={handleChange} required
+            type="url" placeholder="https://linkedin.com/in/..." className={inputCls} />
+          <p className="text-xs text-gray-400 mt-1">전문성을 증명할 핵심 링크를 입력해주세요.</p>
+        </Field>
+
+        {/* 연락 정보 */}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="이메일" icon={<Mail size={14} />} required>
+          <Field label="연락받을 이메일" icon={<Mail size={14} />} required>
             <input name="contact" type="email" value={form.contact} onChange={handleChange} required placeholder="example@email.com" className={inputCls} />
           </Field>
-          <Field label="전화번호" icon={<Phone size={14} />} required>
+          <Field label="연락받을 전화번호" icon={<Phone size={14} />} required>
             <input name="phone" type="tel" value={form.phone} onChange={handleChange} required placeholder="010-0000-0000" className={inputCls} />
           </Field>
         </div>
 
-        {/* 주요 경력 — 구조화 */}
+        {/* 희망 협업 형태 */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-3">
-            <span className="inline-flex items-center gap-1.5"><FileText size={14} />주요 경력 <span className="text-red-500">*</span></span>
+            <span className="inline-flex items-center gap-1.5"><ClipboardList size={14} />희망 협업 형태 <span className="text-red-500">*</span></span>
           </label>
-          <div className="space-y-2">
-            {careers.map((c, idx) => (
-              <div key={idx} className="flex gap-2 items-start">
-                <input value={c.period} onChange={(e) => handleCareer(idx, "period", e.target.value)}
-                  placeholder="기간 (예: 2020~현재)" className={`${inputCls} w-36 flex-shrink-0`} />
-                <input value={c.org} onChange={(e) => handleCareer(idx, "org", e.target.value)}
-                  placeholder="소속" className={`${inputCls} flex-1`} />
-                <input value={c.role} onChange={(e) => handleCareer(idx, "role", e.target.value)}
-                  placeholder="주요 업무" className={`${inputCls} flex-1`} />
-                {careers.length > 1 && (
-                  <button type="button" onClick={() => removeCareer(idx)} className="p-2.5 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
-                    <Trash2 size={15} />
-                  </button>
-                )}
-              </div>
+          <div className="flex flex-wrap gap-2">
+            {COLLABORATION_TYPES.map((type) => (
+              <button key={type} type="button" onClick={() => toggleCollab(type)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${collaborationTypes.includes(type) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"}`}>
+                {type}
+              </button>
             ))}
           </div>
-          <button type="button" onClick={addCareer}
-            className="mt-2 flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 transition-colors font-medium">
-            <Plus size={14} />경력 추가
-          </button>
-        </div>
-
-        {/* 평가위원 이력 + 증빙 */}
-        <div className="border border-gray-200 rounded-2xl p-5 space-y-4 bg-gray-50">
-          <p className="text-sm font-semibold text-gray-700">평가위원 이력 (선택)</p>
-          <Field label="참여 평가 이력" icon={<ClipboardList size={14} />}>
-            <textarea name="evaluations" value={form.evaluations} onChange={handleChange} rows={3}
-              placeholder={"2024  중소벤처기업부 기술평가위원\n2023  산업통상자원부 R&D 심사위원"} className={`${inputCls} resize-none`} />
-          </Field>
-          <Field label="위촉 증빙 서류" icon={<Upload size={14} />}>
-            <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFile} className="hidden" />
-            {certFileName ? (
-              <div className="flex items-center gap-3 border border-blue-200 bg-blue-50 rounded-xl px-4 py-3">
-                <FileText size={16} className="text-blue-600 flex-shrink-0" />
-                <span className="text-sm text-blue-700 flex-1 truncate">{certFileName}</span>
-                <button type="button" onClick={() => { setCertFile(undefined); setCertFileName(undefined); if (fileRef.current) fileRef.current.value = ""; }}
-                  className="text-gray-400 hover:text-red-500"><X size={14} /></button>
-              </div>
-            ) : (
-              <button type="button" onClick={() => fileRef.current?.click()}
-                className="w-full border-2 border-dashed border-gray-300 rounded-xl py-4 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors flex items-center justify-center gap-2">
-                <Upload size={15} />PDF 또는 이미지 첨부 (최대 2MB)
-              </button>
-            )}
-          </Field>
         </div>
 
         <button type="submit" disabled={submitting}
