@@ -217,7 +217,7 @@ function InstitutionTab({ institutions, onLoad, expandedId, setExpandedId }: {
                       {inst.projects.map((p) => (
                         <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-4 mb-2">
                           <div className="font-semibold text-sm text-gray-800 mb-1">{p.title}</div>
-                          <div className="text-xs text-gray-500 mb-2">{p.agency} · {p.period} · 위원 {p.requiredCount}명</div>
+                          <div className="text-xs text-gray-500 mb-2">{p.period && `${p.period} · `}위원 {p.requiredCount}명</div>
                           <div className="flex flex-wrap gap-1.5">
                             {p.specialties.map((s) => <span key={s} className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full">{s}</span>)}
                           </div>

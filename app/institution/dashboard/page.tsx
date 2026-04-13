@@ -5,14 +5,9 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, LogOut, FolderOpen, Users, Tag, X, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { getAllInstitutions, updateInstitution, getAllMatches } from "@/lib/storage";
 import { Institution, Project, Match } from "@/lib/types";
+import { EXPERT_FIELDS } from "@/lib/constants";
 
-const SPECIALTY_OPTIONS = [
-  "경영/전략", "마케팅/홍보", "재무/회계", "인사/노무",
-  "IT/소프트웨어", "데이터/AI", "법률/특허", "R&D/기술",
-  "제조/생산", "유통/물류", "농업/식품", "문화/콘텐츠", "기타",
-];
-
-const EMPTY_PROJECT = { title: "", agency: "", period: "", specialties: [] as string[], requiredCount: 1, description: "" };
+const EMPTY_PROJECT = { title: "", period: "", specialties: [] as string[], requiredCount: 1 };
 
 export default function InstitutionDashboard() {
   const router = useRouter();
@@ -39,7 +34,8 @@ export default function InstitutionDashboard() {
   const statusColor = { pending: "bg-yellow-50 text-yellow-700 border-yellow-200", approved: "bg-green-50 text-green-700 border-green-200", rejected: "bg-red-50 text-red-600 border-red-200" };
 
   const addProject = async () => {
-    if (!newProject.title || !newProject.agency) return;
+    if (!newProject.title) { alert("프로젝트명을 입력해주세요."); return; }
+    if (newProject.specialties.length === 0) { alert("필요 분야를 1개 이상 선택해주세요."); return; }
     const project: Project = { id: crypto.randomUUID(), ...newProject };
     const updated = { ...inst, projects: [...inst.projects, project] };
     await updateInstitution(updated);
@@ -49,6 +45,7 @@ export default function InstitutionDashboard() {
   };
 
   const removeProject = async (id: string) => {
+    if (!confirm("이 프로젝트를 삭제할까요?")) return;
     const updated = { ...inst, projects: inst.projects.filter((p) => p.id !== id) };
     await updateInstitution(updated);
     setInst(updated);
@@ -85,13 +82,13 @@ export default function InstitutionDashboard() {
 
       {inst.status !== "approved" && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-700 mb-8">
-          관리자 승인 대기 중입니다. 승인 후 과제 정보가 전문가 검색에 노출됩니다.
+          관리자 승인 대기 중입니다. 승인 후 프로젝트 정보가 외부에 공개됩니다.
         </div>
       )}
 
       {/* 탭 */}
       <div className="flex gap-2 mb-8">
-        {([["projects", <FolderOpen size={15} key="f" />, "정부과제 관리"], ["matches", <Users size={15} key="u" />, `매칭 현황 (${matches.length})`]] as const).map(([t, icon, label]) => (
+        {([["projects", <FolderOpen size={15} key="f" />, `프로젝트 관리 (${inst.projects.length})`], ["matches", <Users size={15} key="u" />, `매칭 현황 (${matches.length})`]] as const).map(([t, icon, label]) => (
           <button key={t} onClick={() => setTab(t)}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${tab === t ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-600 hover:border-blue-300"}`}>
             {icon}{label}
@@ -104,48 +101,59 @@ export default function InstitutionDashboard() {
           {inst.projects.length === 0 && !showForm && (
             <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300 text-gray-400">
               <FolderOpen size={36} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">등록된 과제가 없습니다. 과제를 추가해보세요.</p>
+              <p className="text-sm mb-1">등록된 프로젝트가 없습니다.</p>
+              <p className="text-xs">아래 버튼으로 필요한 전문가 정보를 등록해보세요.</p>
             </div>
           )}
 
           {inst.projects.map((p) => (
             <div key={p.id} className="bg-white border border-gray-200 rounded-2xl p-6">
               <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-bold text-gray-900">{p.title}</h3>
-                  <p className="text-sm text-gray-500 mt-0.5">{p.agency} · {p.period}</p>
-                </div>
-                <button onClick={() => removeProject(p.id)} className="text-gray-300 hover:text-red-400 transition-colors"><Trash2 size={15} /></button>
+                <h3 className="font-bold text-gray-900">{p.title}</h3>
+                <button onClick={() => removeProject(p.id)} className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"><Trash2 size={15} /></button>
               </div>
-              <p className="text-sm text-gray-600 mb-3">{p.description}</p>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-gray-400">필요 위원 {p.requiredCount}명</span>
+              <div className="flex items-center gap-3 flex-wrap">
+                {p.period && <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">📅 {p.period}</span>}
+                <span className="text-xs text-blue-600 bg-blue-50 font-semibold px-2.5 py-1 rounded-full">👥 {p.requiredCount}명 필요</span>
                 {p.specialties.map((s) => (
-                  <span key={s} className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-xs font-medium px-2.5 py-1 rounded-full"><Tag size={9} />{s}</span>
+                  <span key={s} className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full"><Tag size={9} />{s}</span>
                 ))}
               </div>
             </div>
           ))}
 
           {showForm && (
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 space-y-4">
-              <p className="font-semibold text-gray-800">새 과제 추가</p>
-              {[
-                { label: "과제명 *", key: "title", placeholder: "OO 기술개발 사업" },
-                { label: "주관기관 *", key: "agency", placeholder: "중소벤처기업부" },
-                { label: "기간", key: "period", placeholder: "2026.03 ~ 2026.12" },
-              ].map(({ label, key, placeholder }) => (
-                <div key={key}>
-                  <label className="text-xs font-semibold text-gray-600 mb-1 block">{label}</label>
-                  <input value={(newProject as Record<string, unknown>)[key] as string}
-                    onChange={(e) => setNewProject((p) => ({ ...p, [key]: e.target.value }))}
-                    placeholder={placeholder} className={inputCls} />
-                </div>
-              ))}
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 space-y-5">
+              <p className="font-bold text-gray-800">새 프로젝트 등록</p>
+
               <div>
-                <label className="text-xs font-semibold text-gray-600 mb-2 block">필요 전문 분야</label>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">프로젝트명 / 평가명 <span className="text-red-500">*</span></label>
+                <input value={newProject.title}
+                  onChange={(e) => setNewProject((p) => ({ ...p, title: e.target.value }))}
+                  placeholder="예: 2026년 초기창업패키지 서면평가" className={inputCls} />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">필요 기간</label>
+                <input value={newProject.period}
+                  onChange={(e) => setNewProject((p) => ({ ...p, period: e.target.value }))}
+                  placeholder="예: 2026.05 ~ 2026.06" className={inputCls} />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">총 필요 인원 <span className="text-red-500">*</span></label>
+                <div className="flex items-center gap-3">
+                  <input type="number" min={1} max={100} value={newProject.requiredCount}
+                    onChange={(e) => setNewProject((p) => ({ ...p, requiredCount: Number(e.target.value) }))}
+                    className={`${inputCls} w-28`} />
+                  <span className="text-sm text-gray-500">명</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-2 block">필요 분야 <span className="text-red-500">*</span></label>
                 <div className="flex flex-wrap gap-2">
-                  {SPECIALTY_OPTIONS.map((sp) => (
+                  {EXPERT_FIELDS.map((sp) => (
                     <button key={sp} type="button" onClick={() => toggleSpecialty(sp)}
                       className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${newProject.specialties.includes(sp) ? "bg-blue-600 text-white" : "bg-white border border-gray-300 text-gray-600 hover:border-blue-400"}`}>
                       {sp}
@@ -153,18 +161,9 @@ export default function InstitutionDashboard() {
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 block">필요 위원 수</label>
-                <input type="number" min={1} max={20} value={newProject.requiredCount}
-                  onChange={(e) => setNewProject((p) => ({ ...p, requiredCount: Number(e.target.value) }))} className={`${inputCls} w-24`} />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 block">세부 내용</label>
-                <textarea value={newProject.description} onChange={(e) => setNewProject((p) => ({ ...p, description: e.target.value }))}
-                  rows={3} placeholder="과제 내용 및 전문가 요건을 기재해주세요." className={`${inputCls} resize-none`} />
-              </div>
-              <div className="flex gap-2">
-                <button onClick={addProject} className="bg-blue-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">추가</button>
+
+              <div className="flex gap-2 pt-1">
+                <button onClick={addProject} className="bg-blue-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">등록</button>
                 <button onClick={() => { setShowForm(false); setNewProject({ ...EMPTY_PROJECT }); }}
                   className="text-sm text-gray-500 px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors flex items-center gap-1"><X size={14} />취소</button>
               </div>
@@ -174,7 +173,7 @@ export default function InstitutionDashboard() {
           {!showForm && (
             <button onClick={() => setShowForm(true)}
               className="w-full border-2 border-dashed border-gray-300 rounded-2xl py-4 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors flex items-center justify-center gap-2">
-              <Plus size={16} />과제 추가
+              <Plus size={16} />프로젝트 추가
             </button>
           )}
         </div>
@@ -194,7 +193,7 @@ export default function InstitutionDashboard() {
               </div>
               <div className="flex-1">
                 <div className="font-bold text-gray-900">{m.expertName}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{m.expertMainField} · {m.projectTitle}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{m.expertMainField}{m.projectTitle && ` · ${m.projectTitle}`}</div>
                 {m.note && <div className="text-xs text-gray-400 mt-1">{m.note}</div>}
               </div>
               <div className="flex items-center gap-1.5 text-xs font-semibold">

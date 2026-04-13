@@ -19,11 +19,9 @@ export interface Expert {
 export interface Project {
   id: string;
   title: string;
-  agency: string;
   period: string;
   specialties: string[];
   requiredCount: number;
-  description: string;
 }
 
 export interface Institution {
