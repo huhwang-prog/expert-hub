@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { UserPlus, Search, Award, Shield, Zap, Users } from "lucide-react";
+import { UserPlus, Search, Award, Shield, Zap, Users, Building2, Link2 } from "lucide-react";
 
 export default function Home() {
   return (
@@ -28,10 +28,10 @@ export default function Home() {
               전문가로 등록하기
             </Link>
             <Link
-              href="/search"
+              href="/institution"
               className="inline-flex items-center justify-center gap-2 bg-blue-800/50 border border-white/30 text-white font-bold px-8 py-4 rounded-xl hover:bg-blue-800/70 transition-colors text-base"
             >
-              <Search size={18} />
+              <Building2 size={18} />
               기관 담당자 입장
             </Link>
           </div>
@@ -59,7 +59,7 @@ export default function Home() {
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-12 text-gray-800">
           Expert Hub가 특별한 이유
         </h2>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             {
               icon: <Zap size={28} className="text-blue-600" />,
@@ -67,14 +67,19 @@ export default function Home() {
               desc: "이력을 입력하면 AI가 자동으로 핵심 전문 분야와 역량을 분석해 요약합니다.",
             },
             {
+              icon: <Link2 size={28} className="text-blue-600" />,
+              title: "전문가 ↔ 기관 매칭",
+              desc: "정부과제를 보유한 기관과 적합한 전문가를 관리자가 직접 연결해 드립니다.",
+            },
+            {
               icon: <Search size={28} className="text-blue-600" />,
               title: "스마트 검색",
-              desc: "키워드 검색으로 수천 명의 전문가 중 딱 맞는 인재를 빠르게 찾습니다.",
+              desc: "키워드 검색으로 전문가와 기관 수요를 한 번에 빠르게 찾습니다.",
             },
             {
               icon: <Shield size={28} className="text-blue-600" />,
               title: "신뢰 기반 프로필",
-              desc: "검증된 소속 기관과 상세 이력을 기반으로 신뢰할 수 있는 전문가 풀을 제공합니다.",
+              desc: "위촉 증빙 서류 첨부와 관리자 승인으로 검증된 전문가 풀을 제공합니다.",
             },
           ].map((f) => (
             <div
