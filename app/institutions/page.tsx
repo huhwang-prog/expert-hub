@@ -5,31 +5,6 @@ import { Search, Building2, Tag, FolderOpen, Users } from "lucide-react";
 import { getApprovedInstitutions } from "@/lib/storage";
 import { Institution } from "@/lib/types";
 
-const SAMPLE_INSTITUTIONS: Institution[] = [
-  {
-    id: "sinst-1", orgName: "한국중소벤처기업진흥공단", adminName: "김담당", email: "admin@kosme.or.kr",
-    password: "", phone: "055-751-9000",
-    projects: [
-      { id: "sp1", title: "스마트제조 혁신 기술개발 R&D", agency: "중소벤처기업부", period: "2026.04~2026.12",
-        specialties: ["R&D/기술", "제조/생산", "IT/소프트웨어"], requiredCount: 5,
-        description: "스마트 제조 기술 도입 기업 대상 기술성·사업성 평가위원 모집" },
-      { id: "sp2", title: "소상공인 디지털전환 지원사업", agency: "중소벤처기업부", period: "2026.03~2026.11",
-        specialties: ["IT/소프트웨어", "데이터/AI", "마케팅/홍보"], requiredCount: 3,
-        description: "소상공인 디지털 전환 역량강화 지원 사업 심사위원 모집" },
-    ],
-    status: "approved", createdAt: "2026-04-01T00:00:00Z",
-  },
-  {
-    id: "sinst-2", orgName: "창업진흥원", adminName: "이담당", email: "admin@kised.or.kr",
-    password: "", phone: "042-480-4300",
-    projects: [
-      { id: "sp3", title: "초기창업패키지 사업화 지원", agency: "중소벤처기업부", period: "2026.05~2026.10",
-        specialties: ["경영/전략", "재무/회계", "마케팅/홍보"], requiredCount: 8,
-        description: "예비창업자 및 초기창업자 사업계획서 평가위원 모집" },
-    ],
-    status: "approved", createdAt: "2026-04-02T00:00:00Z",
-  },
-];
 
 export default function InstitutionsPage() {
   const [query, setQuery] = useState("");
@@ -37,7 +12,7 @@ export default function InstitutionsPage() {
 
   useEffect(() => {
     getApprovedInstitutions().then((stored) => {
-      setInstitutions([...stored, ...SAMPLE_INSTITUTIONS]);
+      setInstitutions(stored);
     });
   }, []);
 

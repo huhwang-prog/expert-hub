@@ -5,65 +5,6 @@ import { Search, User, Building2, Calendar, Tag, Users, Sparkles, Briefcase } fr
 import { getApprovedExperts } from "@/lib/storage";
 import { Expert, CareerItem } from "@/lib/types";
 
-const SAMPLE_EXPERTS: Expert[] = [
-  {
-    id: "sample-1",
-    name: "김민준",
-    affiliation: "서울대학교 컴퓨터공학과",
-    position: "교수",
-    specialty: "IT/소프트웨어",
-    education: "MIT 컴퓨터공학 박사",
-    careers: [
-      { period: "2018~현재", org: "서울대학교 컴퓨터공학과", role: "교수" },
-      { period: "2013~2018", org: "삼성전자 AI 연구소", role: "수석연구원" },
-    ],
-    evaluations: "2024  중소벤처기업부 기술평가위원\n2023  산업통상자원부 R&D 심사위원",
-    phone: "",
-    contact: "kiminjun@snu.ac.kr",
-    summary: "AI·머신러닝 분야 15년 경력의 연구자로, 자연어처리 및 컴퓨터 비전 논문 30여 편을 발표하고 산업계 AI 솔루션 개발에 기여했습니다.",
-    fields: ["인공지능", "자연어처리", "컴퓨터 비전"],
-    status: "approved",
-    createdAt: "2026-04-01T09:00:00Z",
-  },
-  {
-    id: "sample-2",
-    name: "이수연",
-    affiliation: "한국과학기술연구원(KIST)",
-    position: "수석연구원",
-    specialty: "R&D/기술",
-    education: "서울대학교 화학공학 박사",
-    careers: [
-      { period: "2015~현재", org: "KIST 바이오연구소", role: "수석연구원" },
-      { period: "2010~2015", org: "한국화학연구원", role: "선임연구원" },
-    ],
-    evaluations: "2024  보건복지부 신약개발 심사위원\n2022  식품의약품안전처 기술평가위원",
-    phone: "",
-    contact: "suyon.lee@kist.re.kr",
-    summary: "항암 신약 개발에 15년간 종사한 바이오 전문가로, 특허 12건을 보유하고 국내외 제약사 자문 역할을 수행해왔습니다.",
-    fields: ["바이오테크", "신약개발", "항암제 연구"],
-    status: "approved",
-    createdAt: "2026-04-02T10:00:00Z",
-  },
-  {
-    id: "sample-3",
-    name: "박지훈",
-    affiliation: "카카오 전략기획팀",
-    position: "팀장",
-    specialty: "경영/전략",
-    education: "연세대학교 경영학 석사",
-    careers: [
-      { period: "2019~현재", org: "카카오 전략기획팀", role: "팀장" },
-      { period: "2012~2019", org: "한국투자파트너스", role: "수석심사역" },
-    ],
-    evaluations: "2024  창업진흥원 사업화 평가위원\n2023  중소벤처기업부 벤처확인심사위원",
-    phone: "",
-    contact: "jihun.park@kakao.com",
-    summary: "벤처캐피탈과 대기업에서 쌓은 투자·M&A 전문성으로 핀테크·헬스케어 스타트업에 누적 300억 이상을 집행한 전략 전문가입니다.",
-    fields: ["스타트업 투자", "M&A", "핀테크"],
-    status: "approved",
-    createdAt: "2026-04-03T11:00:00Z",
-  },
-];
 
 function careersToText(careers: CareerItem[]): string {
   return careers.map((c) => `${c.period} ${c.org} ${c.role}`).join(" ");
@@ -75,7 +16,7 @@ export default function SearchPage() {
 
   useEffect(() => {
     getApprovedExperts().then((stored) => {
-      setExperts([...stored, ...SAMPLE_EXPERTS]);
+      setExperts(stored);
     });
   }, []);
 
@@ -134,6 +75,7 @@ export default function SearchPage() {
 }
 
 function ExpertCard({ expert }: { expert: Expert }) {
+  const [expanded, setExpanded] = useState(false);
   const date = new Date(expert.createdAt).toLocaleDateString("ko-KR", {
     year: "numeric", month: "short", day: "numeric",
   });
@@ -163,7 +105,12 @@ function ExpertCard({ expert }: { expert: Expert }) {
           <div className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold mb-1.5">
             <Sparkles size={11} />AI 요약
           </div>
-          <p className="text-gray-700 text-xs leading-relaxed line-clamp-3">{expert.summary}</p>
+          <p className={`text-gray-700 text-xs leading-relaxed ${expanded ? "" : "line-clamp-3"}`}>{expert.summary}</p>
+          {expert.summary.length > 100 && (
+            <button onClick={() => setExpanded(!expanded)} className="text-blue-500 text-xs mt-1 hover:underline">
+              {expanded ? "접기" : "더 보기"}
+            </button>
+          )}
         </div>
       ) : (
         <p className="text-gray-500 text-sm line-clamp-3 leading-relaxed">{careerPreview}</p>
