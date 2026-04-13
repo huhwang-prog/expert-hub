@@ -47,6 +47,21 @@ export async function loginInstitution(email: string, password: string): Promise
   return res.ok ? res.json() : null;
 }
 
+/* ─── 신청 ─── */
+export async function getAllApplications(): Promise<import("./types").Application[]> {
+  const res = await fetch("/api/applications");
+  return res.ok ? res.json() : [];
+}
+export async function saveApplication(app: import("./types").Application): Promise<void> {
+  await fetch("/api/applications", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(app) });
+}
+export async function updateApplicationStatus(id: string, status: import("./types").Application["status"]): Promise<void> {
+  await fetch(`/api/applications/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+}
+export async function deleteApplication(id: string): Promise<void> {
+  await fetch(`/api/applications/${id}`, { method: "DELETE" });
+}
+
 /* ─── 매칭 ─── */
 export async function getAllMatches(): Promise<Match[]> {
   const res = await fetch("/api/matches");

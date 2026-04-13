@@ -39,6 +39,21 @@ export interface Institution {
   createdAt: string;
 }
 
+export interface Application {
+  id: string;
+  expertName: string;
+  expertMainField: string;
+  expertContact: string;   // 이메일
+  expertPhone: string;
+  message?: string;        // 한 줄 자기소개
+  institutionId: string;
+  institutionName: string;
+  projectId: string;
+  projectTitle: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
+
 export interface Match {
   id: string;
   expertId: string;

@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Search, Building2, Tag, FolderOpen, Users, ExternalLink } from "lucide-react";
-import { getApprovedInstitutions } from "@/lib/storage";
-import { Institution } from "@/lib/types";
+import { Search, Building2, Tag, FolderOpen, Users, ExternalLink, X, Send, CheckCircle } from "lucide-react";
+import { getApprovedInstitutions, saveApplication } from "@/lib/storage";
+import { Institution, Project, Application } from "@/lib/types";
+
+type ApplyTarget = { inst: Institution; project: Project };
 
 export default function InstitutionsPage() {
   const [query, setQuery] = useState("");
   const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [applyTarget, setApplyTarget] = useState<ApplyTarget | null>(null);
+  const [applyDone, setApplyDone] = useState(false);
 
   useEffect(() => {
     getApprovedInstitutions().then(setInstitutions);
@@ -34,7 +38,7 @@ export default function InstitutionsPage() {
     <div className="max-w-6xl mx-auto px-6 py-16">
       <div className="mb-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">기관 수요 현황</h1>
-        <p className="text-gray-500">전문가를 필요로 하는 기관과 프로젝트를 확인하세요.</p>
+        <p className="text-gray-500">전문가를 필요로 하는 기관과 프로젝트를 확인하고 신청해보세요.</p>
       </div>
 
       {/* 통계 */}
@@ -106,31 +110,33 @@ export default function InstitutionsPage() {
                 <div className="divide-y divide-gray-100">
                   {inst.projects.map((p) => (
                     <div key={p.id} className="px-6 py-5">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                          <FolderOpen size={15} className="text-blue-500 flex-shrink-0" />{p.title}
-                        </h3>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {p.period && (
-                            <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full whitespace-nowrap">
-                              {p.period}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                            <FolderOpen size={15} className="text-blue-500 flex-shrink-0" />{p.title}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {p.period && (
+                              <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                                📅 {p.period}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1 text-xs bg-blue-600 text-white font-semibold px-2.5 py-1 rounded-full">
+                              <Users size={11} />{p.requiredCount}명 모집
                             </span>
-                          )}
-                          <span className="flex items-center gap-1 text-xs bg-blue-600 text-white font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
-                            <Users size={11} />{p.requiredCount}명 모집
-                          </span>
+                            {p.specialties.map((s) => (
+                              <span key={s} className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">
+                                <Tag size={9} />{s}
+                              </span>
+                            ))}
+                          </div>
                         </div>
+                        <button
+                          onClick={() => { setApplyTarget({ inst, project: p }); setApplyDone(false); }}
+                          className="flex-shrink-0 flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors">
+                          <Send size={12} />신청하기
+                        </button>
                       </div>
-                      {p.specialties.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          <span className="text-xs text-gray-400 mr-1">필요 분야:</span>
-                          {p.specialties.map((s) => (
-                            <span key={s} className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">
-                              <Tag size={9} />{s}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -141,6 +147,104 @@ export default function InstitutionsPage() {
           ))}
         </div>
       )}
+
+      {/* 신청 모달 */}
+      {applyTarget && (
+        <ApplyModal
+          inst={applyTarget.inst}
+          project={applyTarget.project}
+          done={applyDone}
+          onDone={() => setApplyDone(true)}
+          onClose={() => setApplyTarget(null)}
+        />
+      )}
     </div>
   );
 }
+
+function ApplyModal({ inst, project, done, onDone, onClose }: {
+  inst: Institution; project: Project; done: boolean; onDone: () => void; onClose: () => void;
+}) {
+  const [form, setForm] = useState({ expertName: "", expertMainField: "", expertContact: "", expertPhone: "", message: "" });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSubmitting(true);
+    const app: Application = {
+      id: crypto.randomUUID(),
+      ...form,
+      institutionId: inst.id,
+      institutionName: inst.orgName,
+      projectId: project.id,
+      projectTitle: project.title,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+    await saveApplication(app);
+    setSubmitting(false);
+    onDone();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-8" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={18} /></button>
+
+        {done ? (
+          <div className="text-center py-4">
+            <CheckCircle size={48} className="text-green-500 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">신청 완료!</h3>
+            <p className="text-gray-500 text-sm mb-1"><strong>{inst.orgName}</strong></p>
+            <p className="text-gray-400 text-sm mb-6">{project.title}</p>
+            <p className="text-gray-500 text-sm">기관 담당자 검토 후 연락드립니다.</p>
+            <button onClick={onClose} className="mt-6 text-sm text-blue-600 hover:underline">닫기</button>
+          </div>
+        ) : (
+          <>
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-1">전문가 신청</h3>
+              <p className="text-sm text-gray-500">{inst.orgName} · {project.title}</p>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">이름 <span className="text-red-500">*</span></label>
+                  <input required value={form.expertName} onChange={(e) => setForm((p) => ({ ...p, expertName: e.target.value }))}
+                    placeholder="홍길동" className={inputCls} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">전문 분야 <span className="text-red-500">*</span></label>
+                  <input required value={form.expertMainField} onChange={(e) => setForm((p) => ({ ...p, expertMainField: e.target.value }))}
+                    placeholder="투자, 사업화 등" className={inputCls} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">이메일 <span className="text-red-500">*</span></label>
+                <input required type="email" value={form.expertContact} onChange={(e) => setForm((p) => ({ ...p, expertContact: e.target.value }))}
+                  placeholder="example@email.com" className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">전화번호 <span className="text-red-500">*</span></label>
+                <input required type="tel" value={form.expertPhone} onChange={(e) => setForm((p) => ({ ...p, expertPhone: e.target.value }))}
+                  placeholder="010-0000-0000" className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">한 줄 자기소개 <span className="text-gray-400 font-normal">(선택)</span></label>
+                <textarea value={form.message} onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
+                  rows={2} placeholder="전문성을 간략히 소개해주세요." className={`${inputCls} resize-none`} />
+              </div>
+              <button type="submit" disabled={submitting}
+                className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center gap-2">
+                <Send size={15} />{submitting ? "신청 중..." : "신청하기"}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const inputCls = "w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white";
