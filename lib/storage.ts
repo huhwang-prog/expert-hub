@@ -3,78 +3,61 @@
 import { Expert, Institution, Match } from "./types";
 
 /* ─── 전문가 ─── */
-const EXP_KEY = "expert_hub_experts";
-
-export function getAllExperts(): Expert[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(EXP_KEY) || "[]"); } catch { return []; }
+export async function getAllExperts(): Promise<Expert[]> {
+  const res = await fetch("/api/experts");
+  return res.ok ? res.json() : [];
 }
-export function getApprovedExperts(): Expert[] {
-  return getAllExperts().filter((e) => e.status === "approved");
+export async function getApprovedExperts(): Promise<Expert[]> {
+  const list = await getAllExperts();
+  return list.filter((e) => e.status === "approved");
 }
-export function saveExpert(expert: Expert): void {
-  const list = getAllExperts();
-  list.unshift(expert);
-  localStorage.setItem(EXP_KEY, JSON.stringify(list));
+export async function saveExpert(expert: Expert): Promise<void> {
+  await fetch("/api/experts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(expert) });
 }
-export function updateExpertStatus(id: string, status: Expert["status"]): void {
-  localStorage.setItem(EXP_KEY, JSON.stringify(
-    getAllExperts().map((e) => e.id === id ? { ...e, status } : e)
-  ));
+export async function updateExpertStatus(id: string, status: Expert["status"]): Promise<void> {
+  await fetch(`/api/experts/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
 }
-export function deleteExpert(id: string): void {
-  localStorage.setItem(EXP_KEY, JSON.stringify(getAllExperts().filter((e) => e.id !== id)));
+export async function deleteExpert(id: string): Promise<void> {
+  await fetch(`/api/experts/${id}`, { method: "DELETE" });
 }
 
 /* ─── 기관 ─── */
-const INST_KEY = "expert_hub_institutions";
-
-export function getAllInstitutions(): Institution[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(INST_KEY) || "[]"); } catch { return []; }
+export async function getAllInstitutions(): Promise<Institution[]> {
+  const res = await fetch("/api/institutions");
+  return res.ok ? res.json() : [];
 }
-export function getApprovedInstitutions(): Institution[] {
-  return getAllInstitutions().filter((i) => i.status === "approved");
+export async function getApprovedInstitutions(): Promise<Institution[]> {
+  const list = await getAllInstitutions();
+  return list.filter((i) => i.status === "approved");
 }
-export function saveInstitution(inst: Institution): void {
-  const list = getAllInstitutions();
-  list.unshift(inst);
-  localStorage.setItem(INST_KEY, JSON.stringify(list));
+export async function saveInstitution(inst: Institution): Promise<void> {
+  await fetch("/api/institutions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(inst) });
 }
-export function updateInstitution(inst: Institution): void {
-  localStorage.setItem(INST_KEY, JSON.stringify(
-    getAllInstitutions().map((i) => i.id === inst.id ? inst : i)
-  ));
+export async function updateInstitution(inst: Institution): Promise<void> {
+  await fetch(`/api/institutions/${inst.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(inst) });
 }
-export function updateInstitutionStatus(id: string, status: Institution["status"]): void {
-  localStorage.setItem(INST_KEY, JSON.stringify(
-    getAllInstitutions().map((i) => i.id === id ? { ...i, status } : i)
-  ));
+export async function updateInstitutionStatus(id: string, status: Institution["status"]): Promise<void> {
+  await fetch(`/api/institutions/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
 }
-export function deleteInstitution(id: string): void {
-  localStorage.setItem(INST_KEY, JSON.stringify(getAllInstitutions().filter((i) => i.id !== id)));
+export async function deleteInstitution(id: string): Promise<void> {
+  await fetch(`/api/institutions/${id}`, { method: "DELETE" });
 }
-export function findInstitutionByEmail(email: string, password: string): Institution | null {
-  return getAllInstitutions().find((i) => i.email === email && i.password === password) ?? null;
+export async function loginInstitution(email: string, password: string): Promise<Institution | null> {
+  const res = await fetch("/api/institutions/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+  return res.ok ? res.json() : null;
 }
 
 /* ─── 매칭 ─── */
-const MATCH_KEY = "expert_hub_matches";
-
-export function getAllMatches(): Match[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(MATCH_KEY) || "[]"); } catch { return []; }
+export async function getAllMatches(): Promise<Match[]> {
+  const res = await fetch("/api/matches");
+  return res.ok ? res.json() : [];
 }
-export function saveMatch(match: Match): void {
-  const list = getAllMatches();
-  list.unshift(match);
-  localStorage.setItem(MATCH_KEY, JSON.stringify(list));
+export async function saveMatch(match: Match): Promise<void> {
+  await fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(match) });
 }
-export function updateMatchStatus(id: string, status: Match["status"]): void {
-  localStorage.setItem(MATCH_KEY, JSON.stringify(
-    getAllMatches().map((m) => m.id === id ? { ...m, status } : m)
-  ));
+export async function updateMatchStatus(id: string, status: Match["status"]): Promise<void> {
+  await fetch(`/api/matches/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
 }
-export function deleteMatch(id: string): void {
-  localStorage.setItem(MATCH_KEY, JSON.stringify(getAllMatches().filter((m) => m.id !== id)));
+export async function deleteMatch(id: string): Promise<void> {
+  await fetch(`/api/matches/${id}`, { method: "DELETE" });
 }

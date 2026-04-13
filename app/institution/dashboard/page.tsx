@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, LogOut, Building2, FolderOpen, Users, Tag, X, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Plus, Trash2, LogOut, FolderOpen, Users, Tag, X, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { getAllInstitutions, updateInstitution, getAllMatches } from "@/lib/storage";
 import { Institution, Project, Match } from "@/lib/types";
 
@@ -25,10 +25,12 @@ export default function InstitutionDashboard() {
   useEffect(() => {
     const id = sessionStorage.getItem("inst_id");
     if (!id) { router.push("/institution"); return; }
-    const found = getAllInstitutions().find((i) => i.id === id);
-    if (!found) { router.push("/institution"); return; }
-    setInst(found);
-    setMatches(getAllMatches().filter((m) => m.institutionId === id));
+    Promise.all([getAllInstitutions(), getAllMatches()]).then(([insts, allMatches]) => {
+      const found = insts.find((i) => i.id === id);
+      if (!found) { router.push("/institution"); return; }
+      setInst(found);
+      setMatches(allMatches.filter((m) => m.institutionId === id));
+    });
   }, [router]);
 
   if (!inst) return null;
@@ -36,19 +38,19 @@ export default function InstitutionDashboard() {
   const statusBadge = { pending: "승인 대기 중", approved: "승인됨", rejected: "가입 거절됨" };
   const statusColor = { pending: "bg-yellow-50 text-yellow-700 border-yellow-200", approved: "bg-green-50 text-green-700 border-green-200", rejected: "bg-red-50 text-red-600 border-red-200" };
 
-  const addProject = () => {
+  const addProject = async () => {
     if (!newProject.title || !newProject.agency) return;
     const project: Project = { id: crypto.randomUUID(), ...newProject };
     const updated = { ...inst, projects: [...inst.projects, project] };
-    updateInstitution(updated);
+    await updateInstitution(updated);
     setInst(updated);
     setNewProject({ ...EMPTY_PROJECT });
     setShowForm(false);
   };
 
-  const removeProject = (id: string) => {
+  const removeProject = async (id: string) => {
     const updated = { ...inst, projects: inst.projects.filter((p) => p.id !== id) };
-    updateInstitution(updated);
+    await updateInstitution(updated);
     setInst(updated);
   };
 
@@ -89,7 +91,7 @@ export default function InstitutionDashboard() {
 
       {/* 탭 */}
       <div className="flex gap-2 mb-8">
-        {([["projects", <FolderOpen size={15} />, "정부과제 관리"], ["matches", <Users size={15} />, `매칭 현황 (${matches.length})`]] as const).map(([t, icon, label]) => (
+        {([["projects", <FolderOpen size={15} key="f" />, "정부과제 관리"], ["matches", <Users size={15} key="u" />, `매칭 현황 (${matches.length})`]] as const).map(([t, icon, label]) => (
           <button key={t} onClick={() => setTab(t)}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${tab === t ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-600 hover:border-blue-300"}`}>
             {icon}{label}

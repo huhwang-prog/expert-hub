@@ -24,10 +24,11 @@ export default function AdminPage() {
   const [matchProject, setMatchProject] = useState<string>("");
   const [matchNote, setMatchNote] = useState("");
 
-  const load = () => {
-    setExperts(getAllExperts());
-    setInstitutions(getAllInstitutions());
-    setMatches(getAllMatches());
+  const load = async () => {
+    const [e, i, m] = await Promise.all([getAllExperts(), getAllInstitutions(), getAllMatches()]);
+    setExperts(e);
+    setInstitutions(i);
+    setMatches(m);
   };
 
   useEffect(() => { if (authed) load(); }, [authed]);
@@ -66,9 +67,9 @@ export default function AdminPage() {
       {/* 메인 탭 */}
       <div className="flex gap-3 mb-8">
         {([
-          ["experts", <Users size={15} />, `전문가 관리 (${expCounts.pending} 대기)`],
-          ["institutions", <Building2 size={15} />, `기관 관리 (${instCounts.pending} 대기)`],
-          ["matching", <Link2 size={15} />, `매칭 관리 (${matches.length})`],
+          ["experts", <Users size={15} key="u" />, `전문가 관리 (${expCounts.pending} 대기)`],
+          ["institutions", <Building2 size={15} key="b" />, `기관 관리 (${instCounts.pending} 대기)`],
+          ["matching", <Link2 size={15} key="l" />, `매칭 관리 (${matches.length})`],
         ] as const).map(([t, icon, label]) => (
           <button key={t} onClick={() => setTab(t)}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${tab === t ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-600 hover:border-blue-300"}`}>
@@ -125,16 +126,16 @@ function ExpertTab({ experts, onLoad, expandedId, setExpandedId }: {
                     <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{e.specialty}</span>
                     {e.certFileName && <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full flex items-center gap-1"><FileText size={10} />증빙첨부</span>}
                   </div>
-                  <div className="text-xs text-gray-400 mt-0.5">{e.contact} · {new Date(e.createdAt).toLocaleDateString("ko-KR")} 신청</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{e.contact} · {e.phone} · {new Date(e.createdAt).toLocaleDateString("ko-KR")} 신청</div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {filter === "pending" && <>
-                    <ActionBtn onClick={() => { updateExpertStatus(e.id, "approved"); onLoad(); }} color="green" icon={<Check size={13} />} label="승인" />
-                    <ActionBtn onClick={() => { updateExpertStatus(e.id, "rejected"); onLoad(); }} color="gray" icon={<X size={13} />} label="거절" />
+                    <ActionBtn onClick={async () => { await updateExpertStatus(e.id, "approved"); onLoad(); }} color="green" icon={<Check size={13} />} label="승인" />
+                    <ActionBtn onClick={async () => { await updateExpertStatus(e.id, "rejected"); onLoad(); }} color="gray" icon={<X size={13} />} label="거절" />
                   </>}
-                  {filter === "approved" && <ActionBtn onClick={() => { updateExpertStatus(e.id, "rejected"); onLoad(); }} color="gray" icon={<X size={13} />} label="승인취소" />}
-                  {filter === "rejected" && <ActionBtn onClick={() => { updateExpertStatus(e.id, "approved"); onLoad(); }} color="green" icon={<Check size={13} />} label="승인" />}
-                  <ActionBtn onClick={() => { if (confirm("삭제?")) { deleteExpert(e.id); onLoad(); } }} color="red" icon={<Trash2 size={13} />} label="삭제" />
+                  {filter === "approved" && <ActionBtn onClick={async () => { await updateExpertStatus(e.id, "rejected"); onLoad(); }} color="gray" icon={<X size={13} />} label="승인취소" />}
+                  {filter === "rejected" && <ActionBtn onClick={async () => { await updateExpertStatus(e.id, "approved"); onLoad(); }} color="green" icon={<Check size={13} />} label="승인" />}
+                  <ActionBtn onClick={async () => { if (confirm("삭제?")) { await deleteExpert(e.id); onLoad(); } }} color="red" icon={<Trash2 size={13} />} label="삭제" />
                   <button onClick={() => setExpandedId(expandedId === e.id ? null : e.id)} className="text-gray-400 hover:text-gray-600 p-1">
                     {expandedId === e.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   </button>
@@ -143,7 +144,7 @@ function ExpertTab({ experts, onLoad, expandedId, setExpandedId }: {
               {expandedId === e.id && (
                 <div className="border-t border-gray-100 px-6 py-5 space-y-4 bg-gray-50 text-sm">
                   <Row label="최종 학력" value={e.education} />
-                  <Row label="주요 경력" value={e.career} pre />
+                  <Row label="주요 경력" value={e.careers?.map((c) => `${c.period}  ${c.org}  ${c.role}`).join("\n") ?? ""} pre />
                   {e.evaluations && <Row label="참여 평가 이력" value={e.evaluations} pre />}
                   {e.certFile && (
                     <div>
@@ -199,12 +200,12 @@ function InstitutionTab({ institutions, onLoad, expandedId, setExpandedId }: {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {filter === "pending" && <>
-                    <ActionBtn onClick={() => { updateInstitutionStatus(inst.id, "approved"); onLoad(); }} color="green" icon={<Check size={13} />} label="승인" />
-                    <ActionBtn onClick={() => { updateInstitutionStatus(inst.id, "rejected"); onLoad(); }} color="gray" icon={<X size={13} />} label="거절" />
+                    <ActionBtn onClick={async () => { await updateInstitutionStatus(inst.id, "approved"); onLoad(); }} color="green" icon={<Check size={13} />} label="승인" />
+                    <ActionBtn onClick={async () => { await updateInstitutionStatus(inst.id, "rejected"); onLoad(); }} color="gray" icon={<X size={13} />} label="거절" />
                   </>}
-                  {filter === "approved" && <ActionBtn onClick={() => { updateInstitutionStatus(inst.id, "rejected"); onLoad(); }} color="gray" icon={<X size={13} />} label="승인취소" />}
-                  {filter === "rejected" && <ActionBtn onClick={() => { updateInstitutionStatus(inst.id, "approved"); onLoad(); }} color="green" icon={<Check size={13} />} label="승인" />}
-                  <ActionBtn onClick={() => { if (confirm("삭제?")) { deleteInstitution(inst.id); onLoad(); } }} color="red" icon={<Trash2 size={13} />} label="삭제" />
+                  {filter === "approved" && <ActionBtn onClick={async () => { await updateInstitutionStatus(inst.id, "rejected"); onLoad(); }} color="gray" icon={<X size={13} />} label="승인취소" />}
+                  {filter === "rejected" && <ActionBtn onClick={async () => { await updateInstitutionStatus(inst.id, "approved"); onLoad(); }} color="green" icon={<Check size={13} />} label="승인" />}
+                  <ActionBtn onClick={async () => { if (confirm("삭제?")) { await deleteInstitution(inst.id); onLoad(); } }} color="red" icon={<Trash2 size={13} />} label="삭제" />
                   <button onClick={() => setExpandedId(expandedId === inst.id ? null : inst.id)} className="text-gray-400 hover:text-gray-600 p-1">
                     {expandedId === inst.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   </button>
@@ -239,8 +240,15 @@ function MatchingTab({ matches, onLoad, matchInst, setMatchInst, matchProject, s
   matchNote: string; setMatchNote: (v: string) => void;
 }) {
   const [selectedExpert, setSelectedExpert] = useState<Expert | null>(null);
-  const approvedExperts = getApprovedExperts();
-  const approvedInsts = getApprovedInstitutions();
+  const [approvedExperts, setApprovedExperts] = useState<Expert[]>([]);
+  const [approvedInsts, setApprovedInsts] = useState<Institution[]>([]);
+
+  useEffect(() => {
+    Promise.all([getApprovedExperts(), getApprovedInstitutions()]).then(([e, i]) => {
+      setApprovedExperts(e);
+      setApprovedInsts(i);
+    });
+  }, [matches]);
 
   const selectedProjectObj = matchInst?.projects.find((p) => p.id === matchProject);
 
@@ -248,9 +256,9 @@ function MatchingTab({ matches, onLoad, matchInst, setMatchInst, matchProject, s
     ? approvedExperts.filter((e) => selectedProjectObj.specialties.includes(e.specialty))
     : [];
 
-  const doMatch = () => {
+  const doMatch = async () => {
     if (!selectedExpert || !matchInst || !matchProject || !selectedProjectObj) return;
-    saveMatch({
+    await saveMatch({
       id: crypto.randomUUID(),
       expertId: selectedExpert.id, expertName: selectedExpert.name, expertSpecialty: selectedExpert.specialty,
       institutionId: matchInst.id, institutionName: matchInst.orgName,
@@ -345,8 +353,8 @@ function MatchingTab({ matches, onLoad, matchInst, setMatchInst, matchProject, s
                     {m.status === "confirmed" ? <CheckCircle2 size={11} /> : <Clock size={11} />}
                     {m.status === "suggested" ? "검토 중" : m.status === "confirmed" ? "확정" : "취소"}
                   </span>
-                  {m.status === "suggested" && <ActionBtn onClick={() => { updateMatchStatus(m.id, "confirmed"); onLoad(); }} color="green" icon={<Check size={13} />} label="확정" />}
-                  <ActionBtn onClick={() => { if (confirm("삭제?")) { deleteMatch(m.id); onLoad(); } }} color="red" icon={<Trash2 size={13} />} label="삭제" />
+                  {m.status === "suggested" && <ActionBtn onClick={async () => { await updateMatchStatus(m.id, "confirmed"); onLoad(); }} color="green" icon={<Check size={13} />} label="확정" />}
+                  <ActionBtn onClick={async () => { if (confirm("삭제?")) { await deleteMatch(m.id); onLoad(); } }} color="red" icon={<Trash2 size={13} />} label="삭제" />
                 </div>
               </div>
             ))}

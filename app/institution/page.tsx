@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, LogIn, UserPlus, Lock, Mail, AlertCircle } from "lucide-react";
-import { findInstitutionByEmail, saveInstitution } from "@/lib/storage";
+import { loginInstitution, saveInstitution } from "@/lib/storage";
 import { Institution } from "@/lib/types";
 
 export default function InstitutionPage() {
@@ -19,18 +19,19 @@ export default function InstitutionPage() {
   const [regError, setRegError] = useState("");
   const [regDone, setRegDone] = useState(false);
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const inst = findInstitutionByEmail(loginForm.email, loginForm.password);
+    const inst = await loginInstitution(loginForm.email, loginForm.password);
     if (!inst) { setLoginError("이메일 또는 비밀번호가 올바르지 않습니다."); return; }
+    if (inst.status !== "approved") { setLoginError("관리자 승인 대기 중입니다. 승인 후 로그인 가능합니다."); return; }
     sessionStorage.setItem("inst_id", inst.id);
     router.push("/institution/dashboard");
   };
 
-  const handleRegister = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (regForm.password !== regForm.password2) { setRegError("비밀번호가 일치하지 않습니다."); return; }
-    saveInstitution({
+    await saveInstitution({
       id: crypto.randomUUID(),
       orgName: regForm.orgName,
       adminName: regForm.adminName,

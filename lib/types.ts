@@ -1,3 +1,9 @@
+export interface CareerItem {
+  period: string;  // 기간 (예: 2020~현재)
+  org: string;     // 소속
+  role: string;    // 주요 업무
+}
+
 export interface Expert {
   id: string;
   name: string;
@@ -5,10 +11,11 @@ export interface Expert {
   position: string;
   specialty: string;
   education: string;
-  career: string;
+  careers: CareerItem[];
   evaluations: string;
-  contact: string;
-  certFile?: string;      // base64 위촉 증빙 파일
+  phone: string;
+  contact: string;       // 이메일
+  certFile?: string;     // base64 위촉 증빙
   certFileName?: string;
   summary: string;
   fields: string[];
@@ -18,18 +25,18 @@ export interface Expert {
 
 export interface Project {
   id: string;
-  title: string;           // 과제명
-  agency: string;          // 주관기관 (예: 중소벤처기업부)
-  period: string;          // 기간
-  specialties: string[];   // 필요 전문 분야
-  requiredCount: number;   // 필요 위원 수
+  title: string;
+  agency: string;
+  period: string;
+  specialties: string[];
+  requiredCount: number;
   description: string;
 }
 
 export interface Institution {
   id: string;
-  orgName: string;         // 기관명
-  adminName: string;       // 담당자명
+  orgName: string;
+  adminName: string;
   email: string;
   password: string;
   phone: string;

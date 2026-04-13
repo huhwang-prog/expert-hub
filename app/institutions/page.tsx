@@ -36,7 +36,9 @@ export default function InstitutionsPage() {
   const [institutions, setInstitutions] = useState<Institution[]>([]);
 
   useEffect(() => {
-    setInstitutions([...getApprovedInstitutions(), ...SAMPLE_INSTITUTIONS]);
+    getApprovedInstitutions().then((stored) => {
+      setInstitutions([...stored, ...SAMPLE_INSTITUTIONS]);
+    });
   }, []);
 
   const filtered = useMemo(() => {
