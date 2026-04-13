@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, LogOut, FolderOpen, Users, Tag, X, CheckCircle2, Clock, XCircle, Check, Bell } from "lucide-react";
-import { getAllInstitutions, updateInstitution, getAllMatches, getAllApplications, updateApplicationStatus, deleteApplication, saveMatch } from "@/lib/storage";
-import { Institution, Project, Match, Application } from "@/lib/types";
+import { getAllInstitutions, updateInstitution, getAllMatches, getAllApplications, updateApplicationStatus, deleteApplication, saveMatch, getApprovedExperts } from "@/lib/storage";
+import { Institution, Project, Match, Application, Expert } from "@/lib/types";
 import { EXPERT_FIELDS } from "@/lib/constants";
 
 const EMPTY_PROJECT = { title: "", period: "", specialties: [] as string[], requiredCount: 1 };
@@ -14,14 +14,21 @@ export default function InstitutionDashboard() {
   const [inst, setInst] = useState<Institution | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [expertMap, setExpertMap] = useState<Record<string, Expert>>({});
   const [tab, setTab] = useState<"projects" | "applications" | "matches">("projects");
   const [showForm, setShowForm] = useState(false);
   const [newProject, setNewProject] = useState({ ...EMPTY_PROJECT });
 
   const loadData = async (instId: string) => {
-    const [allApps, allMatches] = await Promise.all([getAllApplications(), getAllMatches()]);
+    const [allApps, allMatches, approvedExperts] = await Promise.all([
+      getAllApplications(), getAllMatches(), getApprovedExperts(),
+    ]);
     setApplications(allApps.filter((a) => a.institutionId === instId));
     setMatches(allMatches.filter((m) => m.institutionId === instId));
+    // 이름 기준으로 등록된 전문가 매핑
+    const map: Record<string, Expert> = {};
+    approvedExperts.forEach((e) => { map[e.name] = e; });
+    setExpertMap(map);
   };
 
   useEffect(() => {
@@ -75,7 +82,7 @@ export default function InstitutionDashboard() {
       id: crypto.randomUUID(),
       expertId: "",
       expertName: app.expertName,
-      expertMainField: app.expertMainField,
+      expertMainField: app.expertMainField ?? "",
       institutionId: inst.id,
       institutionName: inst.orgName,
       projectId: app.projectId,
@@ -227,7 +234,7 @@ export default function InstitutionDashboard() {
             <>
               {/* 대기 중 */}
               {applications.filter((a) => a.status === "pending").map((a) => (
-                <ApplicationCard key={a.id} app={a}
+                <ApplicationCard key={a.id} app={a} expert={expertMap[a.expertName]}
                   onApprove={() => approveApplication(a)}
                   onReject={() => rejectApplication(a.id)}
                   onDelete={() => removeApplication(a.id)} />
@@ -237,7 +244,7 @@ export default function InstitutionDashboard() {
                 <div>
                   <p className="text-xs font-semibold text-gray-400 mb-3 mt-6">처리 완료</p>
                   {applications.filter((a) => a.status !== "pending").map((a) => (
-                    <ApplicationCard key={a.id} app={a}
+                    <ApplicationCard key={a.id} app={a} expert={expertMap[a.expertName]}
                       onApprove={() => approveApplication(a)}
                       onReject={() => rejectApplication(a.id)}
                       onDelete={() => removeApplication(a.id)} />
@@ -278,24 +285,29 @@ export default function InstitutionDashboard() {
   );
 }
 
-function ApplicationCard({ app, onApprove, onReject, onDelete }: {
+function ApplicationCard({ app, expert, onApprove, onReject, onDelete }: {
   app: Application;
+  expert?: Expert;
   onApprove: () => void;
   onReject: () => void;
   onDelete: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const statusStyle = {
     pending: "bg-yellow-50 border-yellow-200",
     approved: "bg-green-50 border-green-200",
     rejected: "bg-gray-50 border-gray-200",
   };
+
   return (
-    <div className={`border rounded-2xl p-5 ${statusStyle[app.status]}`}>
-      <div className="flex items-start justify-between gap-4">
+    <div className={`border rounded-2xl overflow-hidden mb-3 ${statusStyle[app.status]}`}>
+      {/* 상단: 이름 + 상태 + 버튼 */}
+      <div className="flex items-start justify-between gap-4 p-5">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="font-bold text-gray-900">{app.expertName}</span>
-            <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{app.expertMainField}</span>
+            {app.expertMainField && <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{app.expertMainField}</span>}
+            {expert && <span className="text-xs bg-purple-50 text-purple-600 font-semibold px-2 py-0.5 rounded-full">등록 전문가</span>}
             {app.status === "pending" && <span className="text-xs bg-yellow-100 text-yellow-700 font-semibold px-2 py-0.5 rounded-full">검토 대기</span>}
             {app.status === "approved" && <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">승인됨</span>}
             {app.status === "rejected" && <span className="text-xs bg-gray-200 text-gray-600 font-semibold px-2 py-0.5 rounded-full">거절됨</span>}
@@ -303,6 +315,13 @@ function ApplicationCard({ app, onApprove, onReject, onDelete }: {
           <p className="text-xs text-gray-500">{app.expertContact} · {app.expertPhone}</p>
           <p className="text-xs text-gray-400 mt-0.5">신청 프로젝트: {app.projectTitle}</p>
           {app.message && <p className="text-sm text-gray-600 mt-2 bg-white rounded-xl px-3 py-2 border border-gray-100">{app.message}</p>}
+          {/* 등록 전문가면 상세보기 토글 */}
+          {expert && (
+            <button onClick={() => setExpanded(!expanded)}
+              className="mt-2 text-xs text-blue-500 hover:underline">
+              {expanded ? "프로필 접기" : "전문가 프로필 보기"}
+            </button>
+          )}
         </div>
         <div className="flex flex-col gap-2 flex-shrink-0">
           {app.status === "pending" && (
@@ -323,6 +342,51 @@ function ApplicationCard({ app, onApprove, onReject, onDelete }: {
           </button>
         </div>
       </div>
+
+      {/* 등록 전문가 프로필 상세 */}
+      {expert && expanded && (
+        <div className="border-t border-white/60 bg-white px-5 py-4 space-y-3 text-sm">
+          {expert.tagline && <p className="text-gray-600 font-medium">{expert.tagline}</p>}
+          {expert.expertise && (
+            <div>
+              <p className="text-xs font-semibold text-gray-400 mb-1">전문성 및 이력</p>
+              <p className="text-gray-700 text-xs leading-relaxed">{expert.expertise}</p>
+            </div>
+          )}
+          {expert.careerSummary && (
+            <div>
+              <p className="text-xs font-semibold text-gray-400 mb-1">경력 요약</p>
+              <p className="text-gray-700 text-xs leading-relaxed">{expert.careerSummary}</p>
+            </div>
+          )}
+          {expert.skills?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {expert.skills.map((s) => (
+                <span key={s} className="bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-full">{s}</span>
+              ))}
+            </div>
+          )}
+          {expert.collaborationTypes?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {expert.collaborationTypes.map((t) => (
+                <span key={t} className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{t}</span>
+              ))}
+            </div>
+          )}
+          {expert.summary && (
+            <div className="bg-blue-50 rounded-xl p-3">
+              <p className="text-xs font-semibold text-blue-600 mb-1">✦ AI 요약</p>
+              <p className="text-xs text-gray-700 leading-relaxed">{expert.summary}</p>
+            </div>
+          )}
+          {expert.portfolioLink && (
+            <a href={expert.portfolioLink} target="_blank" rel="noopener noreferrer"
+              className="text-xs text-blue-500 hover:underline inline-block">
+              포트폴리오 바로가기 →
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }

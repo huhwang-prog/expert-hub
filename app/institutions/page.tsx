@@ -165,7 +165,7 @@ export default function InstitutionsPage() {
 function ApplyModal({ inst, project, done, onDone, onClose }: {
   inst: Institution; project: Project; done: boolean; onDone: () => void; onClose: () => void;
 }) {
-  const [form, setForm] = useState({ expertName: "", expertMainField: "", expertContact: "", expertPhone: "", message: "" });
+  const [form, setForm] = useState({ expertName: "", expertContact: "", expertPhone: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -208,30 +208,25 @@ function ApplyModal({ inst, project, done, onDone, onClose }: {
               <p className="text-sm text-gray-500">{inst.orgName} · {project.title}</p>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">이름 <span className="text-red-500">*</span></label>
+                <input required value={form.expertName} onChange={(e) => setForm((p) => ({ ...p, expertName: e.target.value }))}
+                  placeholder="홍길동" className={inputCls} />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 mb-1 block">이름 <span className="text-red-500">*</span></label>
-                  <input required value={form.expertName} onChange={(e) => setForm((p) => ({ ...p, expertName: e.target.value }))}
-                    placeholder="홍길동" className={inputCls} />
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">이메일 <span className="text-red-500">*</span></label>
+                  <input required type="email" value={form.expertContact} onChange={(e) => setForm((p) => ({ ...p, expertContact: e.target.value }))}
+                    placeholder="example@email.com" className={inputCls} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 mb-1 block">전문 분야 <span className="text-red-500">*</span></label>
-                  <input required value={form.expertMainField} onChange={(e) => setForm((p) => ({ ...p, expertMainField: e.target.value }))}
-                    placeholder="투자, 사업화 등" className={inputCls} />
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">전화번호 <span className="text-red-500">*</span></label>
+                  <input required type="tel" value={form.expertPhone} onChange={(e) => setForm((p) => ({ ...p, expertPhone: e.target.value }))}
+                    placeholder="010-0000-0000" className={inputCls} />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 block">이메일 <span className="text-red-500">*</span></label>
-                <input required type="email" value={form.expertContact} onChange={(e) => setForm((p) => ({ ...p, expertContact: e.target.value }))}
-                  placeholder="example@email.com" className={inputCls} />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 block">전화번호 <span className="text-red-500">*</span></label>
-                <input required type="tel" value={form.expertPhone} onChange={(e) => setForm((p) => ({ ...p, expertPhone: e.target.value }))}
-                  placeholder="010-0000-0000" className={inputCls} />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 block">한 줄 자기소개 <span className="text-gray-400 font-normal">(선택)</span></label>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">한 줄 소개 <span className="text-gray-400 font-normal">(선택)</span></label>
                 <textarea value={form.message} onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
                   rows={2} placeholder="전문성을 간략히 소개해주세요." className={`${inputCls} resize-none`} />
               </div>

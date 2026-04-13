@@ -42,7 +42,7 @@ export interface Institution {
 export interface Application {
   id: string;
   expertName: string;
-  expertMainField: string;
+  expertMainField?: string;
   expertContact: string;   // 이메일
   expertPhone: string;
   message?: string;        // 한 줄 자기소개
