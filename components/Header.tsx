@@ -1,0 +1,44 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Users, Search, UserPlus } from "lucide-react";
+
+export default function Header() {
+  const pathname = usePathname();
+
+  const navLink = (href: string, label: string) => (
+    <Link
+      href={href}
+      className={`text-sm font-medium transition-colors ${
+        pathname === href
+          ? "text-blue-600"
+          : "text-gray-500 hover:text-gray-900"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+
+  return (
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 font-bold text-blue-700 text-lg">
+          <Users size={22} />
+          Expert Hub
+        </Link>
+        <nav className="flex items-center gap-6">
+          {navLink("/search", "전문가 검색")}
+          {navLink("/expert", "전문가 등록")}
+          <Link
+            href="/expert"
+            className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <UserPlus size={15} />
+            등록하기
+          </Link>
+        </nav>
+      </div>
+    </header>
+  );
+}
