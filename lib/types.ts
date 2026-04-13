@@ -45,6 +45,7 @@ export interface Application {
   expertMainField?: string;
   expertContact: string;   // 이메일
   expertPhone: string;
+  expertId?: string;       // 등록 전문가 ID (매칭 시 사용)
   message?: string;        // 한 줄 자기소개
   institutionId: string;
   institutionName: string;

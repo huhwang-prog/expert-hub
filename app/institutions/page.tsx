@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Search, Building2, Tag, FolderOpen, Users, ExternalLink, X, Send, CheckCircle } from "lucide-react";
-import { getApprovedInstitutions, saveApplication } from "@/lib/storage";
-import { Institution, Project, Application } from "@/lib/types";
+import { Search, Building2, Tag, FolderOpen, Users, ExternalLink, X, Send, CheckCircle, Sparkles } from "lucide-react";
+import { getApprovedInstitutions, saveApplication, getApprovedExperts } from "@/lib/storage";
+import { Institution, Project, Application, Expert } from "@/lib/types";
 
 type ApplyTarget = { inst: Institution; project: Project };
 
@@ -167,6 +167,20 @@ function ApplyModal({ inst, project, done, onDone, onClose }: {
 }) {
   const [form, setForm] = useState({ expertName: "", expertContact: "", expertPhone: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [allExperts, setAllExperts] = useState<Expert[]>([]);
+  const [matchedExpert, setMatchedExpert] = useState<Expert | null>(null);
+
+  useEffect(() => {
+    getApprovedExperts().then(setAllExperts);
+  }, []);
+
+  // 이메일 입력 시 등록 전문가 자동 매칭
+  const handleEmailChange = (email: string) => {
+    setForm((p) => ({ ...p, expertContact: email }));
+    const found = allExperts.find((e) => e.contact.toLowerCase() === email.toLowerCase());
+    setMatchedExpert(found ?? null);
+    if (found) setForm((p) => ({ ...p, expertName: found.name, expertPhone: found.phone }));
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -174,6 +188,8 @@ function ApplyModal({ inst, project, done, onDone, onClose }: {
     const app: Application = {
       id: crypto.randomUUID(),
       ...form,
+      expertId: matchedExpert?.id,
+      expertMainField: matchedExpert?.mainField,
       institutionId: inst.id,
       institutionName: inst.orgName,
       projectId: project.id,
@@ -189,7 +205,7 @@ function ApplyModal({ inst, project, done, onDone, onClose }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40" />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-8" onClick={(e) => e.stopPropagation()}>
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={18} /></button>
 
         {done ? (
@@ -208,28 +224,50 @@ function ApplyModal({ inst, project, done, onDone, onClose }: {
               <p className="text-sm text-gray-500">{inst.orgName} · {project.title}</p>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* 이메일 먼저 — 등록 여부 자동 체크 */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">이메일 <span className="text-red-500">*</span></label>
+                <input required type="email" value={form.expertContact}
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  placeholder="example@email.com" className={inputCls} />
+              </div>
+
+              {/* 등록 전문가 감지 시 프로필 미리보기 */}
+              {matchedExpert && (
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                  <div className="flex items-center gap-1.5 text-purple-700 text-xs font-bold mb-2">
+                    <Sparkles size={12} />Expert Hub 등록 전문가 확인됨
+                  </div>
+                  <p className="font-semibold text-gray-900 text-sm">{matchedExpert.name}</p>
+                  <p className="text-xs text-purple-600 mt-0.5">{matchedExpert.mainField}</p>
+                  {matchedExpert.tagline && <p className="text-xs text-gray-500 mt-1">{matchedExpert.tagline}</p>}
+                  {matchedExpert.skills?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {matchedExpert.skills.slice(0, 4).map((s) => (
+                        <span key={s} className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{s}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="text-xs font-semibold text-gray-600 mb-1 block">이름 <span className="text-red-500">*</span></label>
                 <input required value={form.expertName} onChange={(e) => setForm((p) => ({ ...p, expertName: e.target.value }))}
                   placeholder="홍길동" className={inputCls} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-600 mb-1 block">이메일 <span className="text-red-500">*</span></label>
-                  <input required type="email" value={form.expertContact} onChange={(e) => setForm((p) => ({ ...p, expertContact: e.target.value }))}
-                    placeholder="example@email.com" className={inputCls} />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-600 mb-1 block">전화번호 <span className="text-red-500">*</span></label>
-                  <input required type="tel" value={form.expertPhone} onChange={(e) => setForm((p) => ({ ...p, expertPhone: e.target.value }))}
-                    placeholder="010-0000-0000" className={inputCls} />
-                </div>
-              </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 block">한 줄 소개 <span className="text-gray-400 font-normal">(선택)</span></label>
-                <textarea value={form.message} onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
-                  rows={2} placeholder="전문성을 간략히 소개해주세요." className={`${inputCls} resize-none`} />
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">전화번호 <span className="text-red-500">*</span></label>
+                <input required type="tel" value={form.expertPhone} onChange={(e) => setForm((p) => ({ ...p, expertPhone: e.target.value }))}
+                  placeholder="010-0000-0000" className={inputCls} />
               </div>
+              {!matchedExpert && (
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">한 줄 소개 <span className="text-gray-400 font-normal">(선택)</span></label>
+                  <textarea value={form.message} onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
+                    rows={2} placeholder="전문성을 간략히 소개해주세요." className={`${inputCls} resize-none`} />
+                </div>
+              )}
               <button type="submit" disabled={submitting}
                 className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center gap-2">
                 <Send size={15} />{submitting ? "신청 중..." : "신청하기"}
