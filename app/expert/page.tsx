@@ -153,8 +153,8 @@ export default function ExpertPage() {
             placeholder="어디서 어떤 일을 했는지 핵심만 2~3줄로 요약해주세요." className={`${inputCls} resize-none`} />
         </Field>
 
-        <Field label="포트폴리오 / 이력서 / 링크드인" icon={<Link size={14} />} required>
-          <input name="portfolioLink" value={form.portfolioLink} onChange={handleChange} required
+        <Field label="포트폴리오 / 이력서 / 링크드인" icon={<Link size={14} />}>
+          <input name="portfolioLink" value={form.portfolioLink} onChange={handleChange}
             type="url" placeholder="https://linkedin.com/in/..." className={inputCls} />
           <p className="text-xs text-gray-400 mt-1">전문성을 증명할 핵심 링크를 입력해주세요.</p>
         </Field>

@@ -16,4 +16,5 @@ export const COLLABORATION_TYPES = [
   "단기 자문",
   "강연",
   "파트타임",
+  "기업 평가",
 ];
