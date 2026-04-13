@@ -1,5 +1,7 @@
 # Expert Hub
 
+**라이브 서비스 → https://expert-hub-two.vercel.app**
+
 전문가 이력 관리 & 기관 매칭 플랫폼. AI가 핵심 전문 분야를 자동 요약해주는 MVP 서비스입니다.
 
 ## 기술 스택
