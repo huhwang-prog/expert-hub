@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Search, UserPlus } from "lucide-react";
+import { Users, UserPlus, Settings } from "lucide-react";
 
 export default function Header() {
   const pathname = usePathname();
@@ -11,9 +11,7 @@ export default function Header() {
     <Link
       href={href}
       className={`text-sm font-medium transition-colors ${
-        pathname === href
-          ? "text-blue-600"
-          : "text-gray-500 hover:text-gray-900"
+        pathname === href ? "text-blue-600" : "text-gray-500 hover:text-gray-900"
       }`}
     >
       {label}
@@ -31,11 +29,18 @@ export default function Header() {
           {navLink("/search", "전문가 검색")}
           {navLink("/expert", "전문가 등록")}
           <Link
+            href="/admin"
+            className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${
+              pathname === "/admin" ? "text-gray-900" : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            <Settings size={14} />관리자
+          </Link>
+          <Link
             href="/expert"
             className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            <UserPlus size={15} />
-            등록하기
+            <UserPlus size={15} />등록하기
           </Link>
         </nav>
       </div>
